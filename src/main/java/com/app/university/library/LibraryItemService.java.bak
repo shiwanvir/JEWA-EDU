@@ -1,0 +1,68 @@
+package com.app.university.library;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import com.app.university.result.StudentExam;
+import com.app.university.student.Student;
+
+@Service
+public class LibraryItemService {
+	
+	@Autowired
+	private LibraryItemRepository libraryItemRepository;
+	
+	@Value("${file.upload-path}")
+	private String fileUploadPath;
+	
+	public void saveOrUpdate(LibraryItem libraryItem) {
+		
+		try {
+			String copyPath = fileUploadPath + File.separator + StringUtils.cleanPath(libraryItem.getFile().getOriginalFilename());
+            Path copyLocation = Paths.get(copyPath);        
+            Files.copy(libraryItem.getFile().getInputStream(), copyLocation, StandardCopyOption.REPLACE_EXISTING);
+        
+            libraryItem.setFilePath(copyPath);	
+		} catch (Exception e) {
+            e.printStackTrace();
+            //throw new FileStorageException("Could not store file " + file.getOriginalFilename()
+            //    + ". Please try again!");
+        }
+		
+		libraryItemRepository.save(libraryItem);
+	}	
+	
+	public LibraryItem getLibraryItem(int id) {
+		return libraryItemRepository.findById(id);
+	}
+	
+	
+	public List<LibraryItem> getAllLibraryItems(){
+		List<LibraryItem> items = new ArrayList<LibraryItem>();  
+		libraryItemRepository.findAll().forEach(item -> items.add(item));  
+		return items;
+	}
+	
+	
+	public List<LibraryItem> searchLibraryItems(String type, String search){
+		List<LibraryItem> items = new ArrayList<LibraryItem>();  
+		libraryItemRepository.findByTypeContainingAndNameContaining(type, search).forEach(item -> items.add(item));  
+		return items;
+	}
+	
+	public LibraryItem deleteItem(int id) {
+		LibraryItem item = libraryItemRepository.findById(id);
+		libraryItemRepository.delete(item);
+		return item;
+	}
+}
